@@ -1,21 +1,21 @@
 {
     "parameters": {
         "num_processes": {
-            "min": 4,
+            "min": 8,
             "max": 12,
             "step": 2,
             "description": "Number of parallel processes to run"
         },
         "records_per_second": {
-            "min": 10000,
-            "max": 50000,
-            "step": 10000,
+            "min": 20000,
+            "max": 60000,
+            "step": 20000,
             "description": "Records per second to generate"
         },
         "total_records": {
-            "min": 500000,
-            "max": 5000000,
-            "step": 500000,
+            "min": 5000000,
+            "max": 20000000,
+            "step": 5000000,
             "description": "Total number of records to generate"
         },
         "duplication_rate": {
@@ -25,7 +25,7 @@
             "description": "Rate of duplicate records (0.1 = 10% duplicates)"
         },
         "deduplication_window": {
-            "values": ["1h", "4h"],
+            "values": ["1h"],
             "description": "Time window for deduplication"
         },
         "max_batch_size": {
@@ -39,7 +39,7 @@
     },
     "test_combinations": {
         "strategy": "grid",
-        "max_combinations": 10,
+        "max_combinations": -1,
         "required_parameters": ["num_processes", "records_per_second", "total_records"]
     }
 } 

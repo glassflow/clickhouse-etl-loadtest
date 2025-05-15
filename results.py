@@ -32,7 +32,7 @@ def analyze_results(csv_file: str):
     important_columns = {
         'variant_id': 'Variant ID',
         'duration_sec': 'Time taken for the test (sec)',
-        'result_num_records': 'Number of records',
+        'result_num_records': 'Number of records (millions)',
         'result_time_taken_publish_ms': 'Time taken to publish (ms)',
         'result_rps_achieved': 'RPS Achieved',    
         'result_time_taken_ms': 'Time taken to process records (ms)',    
@@ -50,7 +50,7 @@ def analyze_results(csv_file: str):
         results_table.add_row(
             str(row['variant_id']),
             str(round(row['duration_sec'], 2)),
-            str(row['result_num_records']),
+            str(round(row['result_num_records'] / 1_000_000, 2)),  # Convert to millions
             str(row['result_time_taken_publish_ms']),
             str(row['result_rps_achieved']),   
             str(row['result_time_taken_ms']),             
