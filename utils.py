@@ -319,14 +319,14 @@ def log(
         raise ValueError(
             "Only one of is_success, is_failure, or is_warning can be True"
         )
-
-    if component == "GlassFlow":
-        component_str = "[bold orange_red1][GlassFlow][/bold orange_red1]"
-    elif component == "Kafka":
+            
+    if component == "Kafka":
         component_str = "[bold sky_blue3][Kafka][/bold sky_blue3]"
     elif component == "Clickhouse":
         component_str = "[bold yellow][Clickhouse][/bold yellow]"
-
+    else:
+        component_str = f"[bold orange_red1][{component}][/bold orange_red1]"
+    
     table = Table(
         show_header=False,
         show_edge=False,

@@ -8,6 +8,7 @@ from typing import List, Dict
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from utils import log
 
 console = Console(width=140)
 
@@ -27,17 +28,19 @@ def publish_events_worker(args):
     pipeline_config, generator_schema, num_records, variant_config, process_id = args
     # Create a new pipeline instance for this process
     pipeline = Pipeline(config=pipeline_config)
-    console.print(Panel(
-        f"[cyan]Process {process_id} started publishing events[/cyan]",
-        title="🔄 Process Start",
-        border_style="cyan"
-    ))
+    log(
+        message=f"Process {process_id} started publishing events",
+        status="Started",
+        is_success=True,
+        component="GlassGen"
+    )
     stats = publish_events(pipeline, generator_schema, num_records, variant_config)
-    console.print(Panel(
-        f"[green]Process {process_id} finished publishing events[/green]",
-        title="✅ Process Complete",
-        border_style="green"
-    ))
+    log(
+        message=f"Process {process_id} finished publishing events",
+        status="Finished",
+        is_success=True,
+        component="GlassGen"
+    )
     return stats
 
 def run_parallel_publishers(pipeline: Pipeline, generator_schema: str, variant_config: Dict) -> List[Dict]:
@@ -73,20 +76,15 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
         )
         added_records = n_records_after - n_records_before
         
-        if added_records == total_generated:
-            console.print(Panel(
-                f"[green]Records matched! Found {added_records} records[/green]",
-                title="✅ Success",
-                border_style="green"
-            ))
-            return True
-            
-        console.print(Panel(
-            f"[yellow]Waiting for records to be available... (attempt {retries + 1}/{max_retries})[/yellow]\n"
-            f"Expected: {total_generated}, Found: {added_records}",
-            title="⏳ Waiting",
-            border_style="yellow"
-        ))
+        if added_records == total_generated:        
+            return True                    
+        message = f"Waiting for records to be available... (attempt {retries + 1}/{max_retries}) Expected: {total_generated}, Found: {added_records} ({added_records/total_generated*100}%)"
+        log(
+            message=message,
+            status="Waiting",
+            is_warning=True,
+            component="Pipeline"
+        )
         time.sleep(retry_interval)
         retries += 1
     
@@ -101,11 +99,12 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
 def run_variant(pipeline_config_path, generator_schema, variant_id, variant_config):
     pipeline = pre_process.setup_pipeline(variant_id, pipeline_config_path, variant_config)
     
-    console.print(Panel(
-        f"[bold blue]Pipeline started:[/bold blue] {pipeline.get_running_pipeline()}",
-        title="🚀 Pipeline Status",
-        border_style="blue"
-    ))
+    log(
+        message=f"Pipeline started: {pipeline.get_running_pipeline()}",
+        status="Started",
+        is_success=True,
+        component="Pipeline"
+    )
     
     clickhouse_client = utils.create_clickhouse_client(pipeline.config.sink)
     n_records_before = utils.read_clickhouse_table_size(
@@ -151,8 +150,8 @@ def run_variant(pipeline_config_path, generator_schema, variant_id, variant_conf
         success = False
     else:
         console.print(Panel(
-            "[green]Records available in ClickHouse[/green]",
-            title="✅ ClickHouse Status",
+            f"[green]Excpeted records available in ClickHouse: Found {total_generated} records[/green]",
+            title="✅ Success",
             border_style="green"
         ))
         success = True
