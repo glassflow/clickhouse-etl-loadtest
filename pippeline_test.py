@@ -143,7 +143,7 @@ def run_variant(pipeline_config_path, generator_schema, variant_id, variant_conf
         pipeline_config=pipeline.config,
         n_records_before=n_records_before,
         total_generated=total_generated,
-        max_retries=100,
+        max_retries=1000,
         retry_interval=5
     )
     
