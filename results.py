@@ -50,7 +50,7 @@ def analyze_results(csv_file: str):
         results_table.add_row(
             str(row['variant_id']),
             str(round(row['duration_sec'], 2)),
-            str(round(row['result_num_records'] / 1_000_000, 2)),  # Convert to millions
+            str(round(row['result_num_records'] / 1_000_000, 6)),  # Convert to millions
             str(row['result_time_taken_publish_ms']),
             str(row['result_rps_achieved']),   
             str(row['result_time_taken_ms']),             

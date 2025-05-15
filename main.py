@@ -11,6 +11,7 @@ from cleanup import cleanup_kafka, cleanup_clickhouse, cleanup_pipeline
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
+from utils import log
 
 console = Console(width=140)
 
@@ -68,7 +69,7 @@ class TestExecutor:
             **{f"result_{k}": v for k, v in run_metrics.items()}
         }
 
-    def run_variant(self, variant_id: str, config: Dict):
+    def run_variant_test(self, variant_id: str, config: Dict):
         """Run a single test configuration"""
         cleanup_kafka()
         cleanup_clickhouse()
@@ -145,15 +146,18 @@ class TestExecutor:
             title="🚀 Test Execution Started",
             border_style="blue"
         ))
-
-        if resume and completed_tests:
-            console.print(f"[yellow]⏭️  Resuming from previous run. Completed tests: {len(completed_tests)}[/yellow]")
-
+        
         # Run each test configuration
         for i, config in enumerate(all_configs, 1):
             variant_id = self._create_variant_id(config)
-            if resume and variant_id in completed_variant_ids:
-                console.print(f"[yellow]⏭️  Skipping completed test {i}/{len(all_configs)}: {variant_id}[/yellow]")
+            if resume and variant_id in completed_variant_ids:                
+                console.print(Panel(
+                    f"[bold cyan]Test {i}/{len(all_configs)}[/bold cyan]\n"
+                    f"[bold cyan]Variant ID:[/bold cyan] {variant_id}\n\n"
+                    f"[bold cyan]Configuration:[/bold cyan]\n{json.dumps(config, indent=2)}",
+                    title="⏭️ Skipped CompletedTest",
+                    border_style="cyan"
+                ))
                 continue
 
             # Print test configuration
@@ -165,7 +169,7 @@ class TestExecutor:
                 border_style="cyan"
             ))
             
-            self.run_variant(variant_id, config)
+            self.run_variant_test(variant_id, config)
 
 def main():
     import argparse

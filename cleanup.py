@@ -29,7 +29,7 @@ def cleanup_kafka():
             admin_client.delete_topics(load_topics)
             for topic in load_topics:
                 log(
-                    message=f"Topic [italic u]{topic}[/italic u]",
+                    message=f"Cleanup: Deleted Topic [italic u]{topic}[/italic u]",
                     status="Deleted",
                     is_success=True,
                     component="Kafka",
@@ -84,7 +84,7 @@ def cleanup_clickhouse():
             for table in load_tables:
                 client.command(f"DROP TABLE IF EXISTS {table}")
                 log(
-                    message=f"Table [italic u]{table}[/italic u]",
+                    message=f"Cleanup: Deleted Table [italic u]{table}[/italic u]",
                     status="Deleted",
                     is_success=True,
                     component="Clickhouse",
