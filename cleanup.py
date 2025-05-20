@@ -110,6 +110,12 @@ def cleanup_clickhouse():
 
 def cleanup_pipeline():
     stop_pipeline_if_running()
+    log(
+        message="Cleanup: Stopped Pipeline",
+        status="Deleted",
+        is_success=True,
+        component="Pipeline",
+    )
 
 if __name__ == "__main__":
     cleanup_kafka()

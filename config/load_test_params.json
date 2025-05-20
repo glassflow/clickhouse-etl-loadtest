@@ -1,15 +1,15 @@
 {
     "parameters": {
         "num_processes": {
-            "min": 8,
+            "min": 2,
             "max": 12,
             "step": 2,
             "description": "Number of parallel processes to run"
         },
         "records_per_second": {
-            "min": 20000,
-            "max": 60000,
-            "step": 20000,
+            "min": 200000,
+            "max": 200000,
+            "step": 200000,
             "description": "Records per second to generate"
         },
         "total_records": {
@@ -25,7 +25,7 @@
             "description": "Rate of duplicate records (0.1 = 10% duplicates)"
         },
         "deduplication_window": {
-            "values": ["1h"],
+            "values": ["8h"],
             "description": "Time window for deduplication"
         },
         "max_batch_size": {

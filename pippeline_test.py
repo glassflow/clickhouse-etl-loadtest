@@ -70,6 +70,7 @@ def run_parallel_publishers(pipeline: Pipeline, generator_schema: str, variant_c
 def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total_generated, max_retries=30, retry_interval=10):
     """Wait for records to be available in ClickHouse with retries"""
     retries = 0
+    last_percentage = 0    
     while retries < max_retries:
         n_records_after = utils.read_clickhouse_table_size(
             pipeline_config.sink, clickhouse_client
@@ -77,14 +78,18 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
         added_records = n_records_after - n_records_before
         
         if added_records == total_generated:        
-            return True                    
-        message = f"Waiting for records to be available... (attempt {retries + 1}/{max_retries}) Expected: {total_generated}, Found: {added_records} ({added_records/total_generated*100}%)"
-        log(
-            message=message,
-            status="Waiting",
-            is_warning=True,
-            component="Pipeline"
-        )
+            return True        
+        percentage = round(added_records/total_generated*100)
+        # only log if percentage has changed by atleast 5
+        if abs(percentage - last_percentage) >= 5:
+            message = f"Waiting for records to be available... (attempt {retries + 1}/{max_retries}) Expected: {total_generated}, Found: {added_records} ({percentage}%)"
+            log(
+                message=message,
+                status="Waiting",
+                is_warning=True,
+                component="Pipeline"
+            )
+            last_percentage = percentage
         time.sleep(retry_interval)
         retries += 1
     
@@ -137,6 +142,7 @@ def run_variant(pipeline_config_path, generator_schema, variant_id, variant_conf
     ))
     
     # Wait for records to be available in ClickHouse
+    record_reading_start_time = time.time()
     records_available = wait_for_records(
         clickhouse_client=clickhouse_client,
         pipeline_config=pipeline.config,
@@ -145,7 +151,7 @@ def run_variant(pipeline_config_path, generator_schema, variant_id, variant_conf
         max_retries=1000,
         retry_interval=5
     )
-    
+    record_reading_end_time = time.time()
     if not records_available:
         success = False
     else:
@@ -161,5 +167,6 @@ def run_variant(pipeline_config_path, generator_schema, variant_id, variant_conf
     aggregated_stats["time_taken_ms"] = time_taken_complete_ms
     # average latency 
     aggregated_stats["avg_latency_ms"] = time_taken_complete_ms / num_records
+    aggregated_stats["lag_ms"] = round((record_reading_end_time - record_reading_start_time) * 1000)
     return aggregated_stats
 

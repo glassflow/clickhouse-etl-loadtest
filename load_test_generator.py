@@ -155,7 +155,9 @@ def main():
     # Example usage
     generator = LoadTestGenerator('config/load_test_params.json')
     combinations = generator.generate_combinations()
-    generator.print_combinations(combinations)
+    for combo in combinations:
+        print(json.dumps(combo, indent=2))
+    # generator.print_combinations(combinations)
 
 if __name__ == "__main__":
     main() 

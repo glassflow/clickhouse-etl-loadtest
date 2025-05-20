@@ -100,8 +100,10 @@ python main.py --test-id my-test --config path/to/your/load_test_params.json
 
 ## Test Results
 
-The test results are stored in the `results` directory (or specified directory) with the following format:
+The test results are stored in the `results` directory with the following format:
 - CSV file: `<test-id>_results.csv`
+
+For example, if you ran a test with ID "test-001", the results would be in `results/test-001_results.csv`
 
 ### Metrics Collected
 
@@ -116,6 +118,7 @@ The following metrics are collected and analyzed for each test run:
 | result_rps_achieved | Records per second achieved during the test | records/second |
 | result_avg_latency_ms | Average latency per record | milliseconds |
 | result_success | Whether the test completed successfully | boolean |
+| result_lag_ms | Current lag between data generation and processing | milliseconds |
 
 These metrics provide insights into:
 - Overall test performance (duration, success rate)
@@ -125,11 +128,14 @@ These metrics provide insights into:
 
 ## Analyzing Results
 
-The tool includes a results analysis script (`results.py`) that helps you analyze and visualize the test results. To analyze your test results:
-
-Run the analysis script with the path to your results file:
+The tool includes a results analysis script (`results.py`) that helps you analyze and visualize the test results. To analyze your test results, run:
 ```bash
-python results.py --results-file results/<your-test-id>_results.csv
+python results.py --results-file results/<test-id>_results.csv
+```
+
+For example:
+```bash
+python results.py --results-file results/19_05_001_results.csv
 ```
 
 The script will display:
@@ -162,9 +168,3 @@ The load test runs on your local machine and interacts with:
 The tool includes cleanup utilities to remove test artifacts:
 - `cleanup_kafka()`: Removes Kafka topics starting with 'load_'
 - `cleanup_clickhouse()`: Removes ClickHouse tables starting with 'load_'
-
-
-## TODO 
-
-- Cleanup console printing during the test 
-- Add more information about resource consumption during the test

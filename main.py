@@ -99,7 +99,7 @@ class TestExecutor:
             table.add_row("Records Processed", str(run_metrics.get('num_records', 0)))
             table.add_row("RPS Achieved", str(run_metrics.get('rps_achieved', 0)))
             table.add_row("Average Latency", f"{round(run_metrics.get('avg_latency_ms', 0), 2)} ms")
-
+            table.add_row("Lag", f"{round(run_metrics.get('lag_ms', 0), 2)} ms")
             console.print(table)
             
             # cleanup kafka and clickhouse
@@ -129,10 +129,13 @@ class TestExecutor:
             )
             self._save_test_result(result)
 
-    def run_tests(self, resume: bool = True):
+    def run_tests(self, resume: bool = True, single_config: Dict = None):
         """Run all test configurations, with option to resume from last completed test"""
-        # Get all test configurations
-        all_configs = self.generator.generate_combinations()
+        # Get test configurations
+        if single_config:
+            all_configs = [single_config]
+        else:
+            all_configs = self.generator.generate_combinations()
         
         # Get completed tests if resuming
         completed_tests = self._get_completed_tests() if resume else []
@@ -183,6 +186,8 @@ def main():
                        help='Directory to store test results')
     parser.add_argument('--config', default='config/load_test_params.json',
                        help='Path to load test parameters configuration file (default: config/load_test_params.json)')
+    parser.add_argument('--single-config', type=str,
+                       help='JSON file of a single test configuration to run')
     args = parser.parse_args()
 
     executor = TestExecutor(
@@ -190,7 +195,20 @@ def main():
         results_dir=args.results_dir,
         test_id=args.test_id        
     )
-    executor.run_tests(resume=not args.no_resume)
+
+    single_config = None
+    if args.single_config:
+        try:
+            single_config = json.load(open(args.single_config))
+        except json.JSONDecodeError:
+            console.print(Panel(
+                "[red]Invalid JSON format for --single-config parameter[/red]",
+                title="❌ Error",
+                border_style="red"
+            ))
+            return
+
+    executor.run_tests(resume=not args.no_resume, single_config=single_config)
 
 if __name__ == "__main__":
     main()

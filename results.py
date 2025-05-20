@@ -33,12 +33,13 @@ def analyze_results(csv_file: str):
         'variant_id': 'Variant ID',
         'duration_sec': 'Time taken for the test (sec)',
         'result_num_records': 'Number of records (millions)',
-        'result_time_taken_publish_ms': 'Time taken to publish (ms)',
+        'result_time_taken_publish_ms': 'Time taken to publish (sec)',
         'result_rps_achieved': 'RPS Achieved',    
-        'result_time_taken_ms': 'Time taken to process records (ms)',    
+        'result_time_taken_ms': 'Time taken to process records (sec)',    
         'result_avg_latency_ms': 'Average Latency (ms)',
-        'result_success': 'Success',
-    }
+        'result_lag_ms': 'Lag (sec)',
+        'result_success': 'Success'
+    }    
 
     # Create a table for important columns
     results_table = Table(title="Test Results", show_header=True, header_style="bold magenta")
@@ -47,16 +48,25 @@ def analyze_results(csv_file: str):
 
     # Add data rows
     for _, row in df.iterrows():
-        results_table.add_row(
+        row_data = [
             str(row['variant_id']),
             str(round(row['duration_sec'], 2)),
             str(round(row['result_num_records'] / 1_000_000, 6)),  # Convert to millions
-            str(row['result_time_taken_publish_ms']),
+            str(round(row['result_time_taken_publish_ms'] / 1000, 2)),  # Convert ms to seconds
             str(row['result_rps_achieved']),   
-            str(row['result_time_taken_ms']),             
-            str(round(row['result_avg_latency_ms'], 2)),
-            "✅" if row['result_success'] else "❌"
-        )
+            str(round(row['result_time_taken_ms'] / 1000, 2)),  # Convert ms to seconds
+            str(round(row['result_avg_latency_ms'], 2)),  # Keep latency in ms
+        ]
+
+        # Add lag value based on available data
+        if 'result_lag_ms' in df.columns:
+            row_data.append(str(round(row['result_lag_ms'] / 1000, 2)))  # Convert ms to seconds
+        else:
+            row_data.append(str(round(row['estimated_lag_ms'] / 1000, 2)))  # Convert ms to seconds
+
+        row_data.append("✅" if row['result_success'] else "❌")
+        
+        results_table.add_row(*row_data)
 
     console.print(results_table)
 
