@@ -1,4 +1,4 @@
-import utils
+from src import utils
 import json
 from glassflow_clickhouse_etl.models import PipelineConfig
 

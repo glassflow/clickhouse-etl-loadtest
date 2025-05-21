@@ -1,14 +1,13 @@
-import utils
-import pre_process
+from src import utils
+from src import pre_process
 from glassflow_clickhouse_etl import Pipeline
-from generate_events import generate_events_with_duplicates
+from src.generate_events import generate_events_with_duplicates
 import time
 import multiprocessing
 from typing import List, Dict
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
-from utils import log
+
 
 console = Console(width=140)
 
@@ -28,14 +27,14 @@ def publish_events_worker(args):
     pipeline_config, generator_schema, num_records, variant_config, process_id = args
     # Create a new pipeline instance for this process
     pipeline = Pipeline(config=pipeline_config)
-    log(
+    utils.log(
         message=f"Process {process_id} started publishing events",
         status="Started",
         is_success=True,
         component="GlassGen"
     )
     stats = publish_events(pipeline, generator_schema, num_records, variant_config)
-    log(
+    utils.log(
         message=f"Process {process_id} finished publishing events",
         status="Finished",
         is_success=True,
@@ -83,7 +82,7 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
         # only log if percentage has changed by atleast 5
         if abs(percentage - last_percentage) >= 5:
             message = f"Waiting for records to be available... (attempt {retries + 1}/{max_retries}) Expected: {total_generated}, Found: {added_records} ({percentage}%)"
-            log(
+            utils.log(
                 message=message,
                 status="Waiting",
                 is_warning=True,
@@ -104,7 +103,7 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
 def run_variant(pipeline_config_path, generator_schema, variant_id, variant_config):
     pipeline = pre_process.setup_pipeline(variant_id, pipeline_config_path, variant_config)
     
-    log(
+    utils.log(
         message=f"Pipeline started: {pipeline.get_running_pipeline()}",
         status="Started",
         is_success=True,

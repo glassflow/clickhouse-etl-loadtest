@@ -1,6 +1,6 @@
 # GlassFlow Clickhouse ETL LoadTesting
 
-A load testing tool for [GlassFlow Clickhouse ETL](https://github.com/glassflow/clickhouse-etl), designed to evaluate the performance and reliability of real-time data processing pipelines.
+A load testing tool for [GlassFlow Clickhouse ETL](https://github.com/glassflow/clickhouse-etl), designed to evaluate the performance and reliability of the glassflow clickhouse etl pipeine.
 
 ## Overview
 
@@ -47,7 +47,7 @@ The load test parameters are defined in `config/load_test_params.json`. Here are
 
 ### Configuring Test Parameters
 
-You can customize the test parameters by editing `config/load_test_params.json`. For each parameter, you can set:
+You can customize the test parameters by editing `load_test_params.json`. For each parameter, you can set:
 - `min`: Minimum value
 - `max`: Maximum value
 - `step`: Increment between values
@@ -74,7 +74,7 @@ To limit the number of test variants, you can set `max_combinations` in the conf
 ## Running the Tests
 
 1. Configure your test parameters:
-   - Edit `config/load_test_params.json` to set your desired parameter ranges
+   - Edit `load_test_params.json` to set your desired parameter ranges
    - Optionally set `max_combinations` to limit the number of test variants
    - Save the configuration file
 
@@ -91,7 +91,7 @@ python main.py --test-id <your-test-id>
 Additional options:
 - `--no-resume`: Do not resume from previous test run
 - `--results-dir`: Directory to store test results (default: 'results')
-- `--config`: Path to load test parameters configuration file (default: 'config/load_test_params.json')
+- `--config`: Path to load test parameters configuration file (default: 'load_test_params.json')
 
 Example with custom configuration:
 ```bash
@@ -118,12 +118,12 @@ The following metrics are collected and analyzed for each test run:
 | result_rps_achieved | Records per second achieved during the test | records/second |
 | result_avg_latency_ms | Average latency per record | milliseconds |
 | result_success | Whether the test completed successfully | boolean |
-| result_lag_ms | Current lag between data generation and processing | milliseconds |
+| result_lag_ms | Lag between data generation and processing | milliseconds |
 
 These metrics provide insights into:
 - Overall test performance (duration, success rate)
 - Data processing throughput (RPS)
-- Processing efficiency (latency)
+- Processing efficiency (latency, lag)
 - System reliability (success rate)
 
 ## Analyzing Results

@@ -1,10 +1,8 @@
 from kafka.admin import KafkaAdminClient
 from kafka.errors import UnknownTopicOrPartitionError
-from utils import log
 import clickhouse_connect
 import base64
-from utils import stop_pipeline_if_running
-
+from src.utils import log, stop_pipeline_if_running
 
 def cleanup_kafka():
     """Delete all Kafka topics that begin with 'load_'"""
