@@ -3,7 +3,7 @@ import random
 from typing import List, Dict, Any, Union
 import itertools
 from dataclasses import dataclass
-
+import sys
 @dataclass
 class ParameterRange:
     min: Union[int, float]
@@ -152,11 +152,11 @@ class LoadTestGenerator:
 
 def main():
     # Example usage
-    generator = LoadTestGenerator('config/load_test_params.json')
+    config_path = sys.argv[1]
+    generator = LoadTestGenerator(config_path)
     combinations = generator.generate_combinations()
     for combo in combinations:
-        print(json.dumps(combo, indent=2))
-    # generator.print_combinations(combinations)
+        print(json.dumps(combo, indent=2))    
 
 if __name__ == "__main__":
     main() 
