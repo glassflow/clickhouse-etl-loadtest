@@ -1,5 +1,6 @@
 rich
-kafka-python
+confluent-kafka
 clickhouse-connect
 glassgen>=0.1.19
 glassflow-clickhouse-etl
+clickhouse-driver

@@ -1,5 +1,4 @@
-from src import utils
-from src import pre_process
+from src.pre_process import setup_pipeline
 from glassflow_clickhouse_etl import Pipeline
 from src.generate_events import generate_events_with_duplicates
 import time
@@ -7,7 +6,9 @@ import multiprocessing
 from typing import List, Dict
 from rich.console import Console
 from rich.panel import Panel
-
+from src.utils.logger import log
+from src.utils.clickhouse import read_clickhouse_table_size, create_clickhouse_client
+from src.utils.pipeline import GlassFlowPipeline
 
 console = Console(width=140)
 
@@ -27,14 +28,14 @@ def publish_events_worker(args):
     pipeline_config, generator_schema, num_records, variant_config, process_id = args
     # Create a new pipeline instance for this process
     pipeline = Pipeline(config=pipeline_config)
-    utils.log(
+    log(
         message=f"Process {process_id} started publishing events",
         status="Started",
         is_success=True,
         component="GlassGen"
     )
     stats = publish_events(pipeline, generator_schema, num_records, variant_config)
-    utils.log(
+    log(
         message=f"Process {process_id} finished publishing events",
         status="Finished",
         is_success=True,
@@ -71,7 +72,7 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
     retries = 0
     last_percentage = 0    
     while retries < max_retries:
-        n_records_after = utils.read_clickhouse_table_size(
+        n_records_after = read_clickhouse_table_size(
             pipeline_config.sink, clickhouse_client
         )
         added_records = n_records_after - n_records_before
@@ -82,7 +83,7 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
         # only log if percentage has changed by atleast 5
         if abs(percentage - last_percentage) >= 5:
             message = f"Waiting for records to be available... (attempt {retries + 1}/{max_retries}) Expected: {total_generated}, Found: {added_records} ({percentage}%)"
-            utils.log(
+            log(
                 message=message,
                 status="Waiting",
                 is_warning=True,
@@ -100,18 +101,20 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
     ))
     return False
 
-def run_variant(pipeline_config_path, generator_schema, variant_id, variant_config):
-    pipeline = pre_process.setup_pipeline(variant_id, pipeline_config_path, variant_config)
+def run_variant(pipeline_config_path: str, generator_schema: str, variant_id: str, variant_config: dict, pipeline: GlassFlowPipeline):
+    """Run a single variant of the load test"""
+    # Set up pipeline with test configuration
+    pipeline = setup_pipeline(variant_id, pipeline_config_path, variant_config, pipeline)
     
-    utils.log(
+    log(
         message=f"Pipeline started: {pipeline.get_running_pipeline()}",
         status="Started",
         is_success=True,
         component="Pipeline"
     )
     
-    clickhouse_client = utils.create_clickhouse_client(pipeline.config.sink)
-    n_records_before = utils.read_clickhouse_table_size(
+    clickhouse_client = create_clickhouse_client(pipeline.config.sink)
+    n_records_before = read_clickhouse_table_size(
         pipeline.config.sink, clickhouse_client
     )
     start_time = time.time()
@@ -131,7 +134,7 @@ def run_variant(pipeline_config_path, generator_schema, variant_id, variant_conf
         "num_records": num_records,
         "num_processes": variant_config["num_processes"],
         "time_taken_publish_ms": time_taken_ms,
-        "rps_achieved": round((num_records / time_taken_ms) * 1000)
+        "rps_achieved": round((num_records / time_taken_ms) * 1000),    
     }
     
     console.print(Panel(
@@ -167,5 +170,6 @@ def run_variant(pipeline_config_path, generator_schema, variant_id, variant_conf
     # average latency 
     aggregated_stats["avg_latency_ms"] = time_taken_complete_ms / num_records
     aggregated_stats["lag_ms"] = round((record_reading_end_time - record_reading_start_time) * 1000)
+    aggregated_stats["glassflow_rps"] = round((num_records / time_taken_complete_ms) * 1000)
     return aggregated_stats
 

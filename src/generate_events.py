@@ -1,6 +1,8 @@
 from glassflow_clickhouse_etl.models import SourceConfig
 import glassgen 
 import json
+import base64
+import tempfile
 
 def generate_events_with_duplicates(
     source_config: SourceConfig,
@@ -46,6 +48,14 @@ def generate_events_with_duplicates(
         brokers = ["localhost:9093"]
     else:
         brokers = source_config.connection_params.brokers
+    
+    if source_config.connection_params.root_ca:
+        with tempfile.NamedTemporaryFile(delete=False, mode='w') as ca_cert_file:
+            # base64 decode the root ca
+            ca_cert_file.write(base64.b64decode(source_config.connection_params.root_ca).decode("utf-8"))
+            ca_cert_path = ca_cert_file.name
+    else:
+        ca_cert_path = None
 
     glassgen_config["sink"] = {
         "type": "kafka",
@@ -56,6 +66,7 @@ def generate_events_with_duplicates(
             "sasl.mechanism": source_config.connection_params.mechanism,
             "sasl.username": source_config.connection_params.username,
             "sasl.password": source_config.connection_params.password,
+            "ssl.ca.location": ca_cert_path,
         },
     }
     return glassgen.generate(config=glassgen_config)

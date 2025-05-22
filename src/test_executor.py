@@ -7,7 +7,9 @@ from typing import Dict, List
 import uuid
 from src.load_test_generator import LoadTestGenerator
 from src.pippeline_test import run_variant
-from src.cleanup import cleanup_kafka, cleanup_clickhouse, cleanup_pipeline
+from src.utils.pipeline import GlassFlowPipeline
+from src.utils.clickhouse import cleanup_clickhouse
+from src.utils.kafka import cleanup_kafka
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -15,11 +17,12 @@ from rich.panel import Panel
 console = Console(width=140)
 
 class TestExecutor:
-    def __init__(self, config_path: str, results_dir: str, test_id: str):
+    def __init__(self, config_path: str, results_dir: str, test_id: str, pipeline_config_path: str, glassflow_host: str = "http://localhost:8080"):
         self.generator = LoadTestGenerator(config_path)
         self.test_id = test_id
         self.results_dir = results_dir
-        self.pipeline_config_path = "config/glassflow/deduplication_pipeline.json"
+        self.pipeline_config_path = pipeline_config_path
+        self.glassflow_host = glassflow_host
         self.generator_schema = "config/glassgen/user_event.json"
         self.results_file = os.path.join(results_dir, f"{self.test_id}_results.csv")
         self._ensure_results_dir()
@@ -55,7 +58,7 @@ class TestExecutor:
         config_hash = str(uuid.uuid5(uuid.NAMESPACE_DNS, config_str))[:8]
         return f"load_{config_hash}" 
 
-    def _prepare_test_result(self, variant_id: str, config: Dict, success: bool, 
+    def _prepare_test_result(self, variant_id: str, load_test_config: Dict, success: bool, 
                         duration: float, run_metrics: Dict) -> Dict:
         """Prepare a test result dictionary"""
         return {
@@ -64,24 +67,26 @@ class TestExecutor:
             "timestamp": datetime.now().isoformat(),
             "success": success,
             "duration_sec": round(duration, 2),
-            **{f"param_{k}": v for k, v in config.items()},
+            **{f"param_{k}": v for k, v in load_test_config.items()},
             **{f"result_{k}": v for k, v in run_metrics.items()}
         }
 
-    def run_variant_test(self, variant_id: str, config: Dict):
+    def run_variant_test(self, variant_id: str, load_test_config: Dict):
         """Run a single test configuration"""
-        cleanup_kafka()
-        cleanup_clickhouse()
-        # Skip if test was already completed        
+        pipeline = GlassFlowPipeline(host=self.glassflow_host)
+        pipeline_config = pipeline.load_conf(json.load(open(self.pipeline_config_path)))
+        cleanup_kafka(pipeline_config.source)
+        cleanup_clickhouse(pipeline_config.sink)        
+        
         start_time = time.time()
         run_metrics = {}
         try:
             # Set up pipeline with test configuration
-            run_metrics = run_variant(self.pipeline_config_path, self.generator_schema, variant_id, config)
+            run_metrics = run_variant(self.pipeline_config_path, self.generator_schema, variant_id, load_test_config, pipeline)
             duration = time.time() - start_time
             result = self._prepare_test_result(
                 variant_id=variant_id,
-                config=config,
+                load_test_config=load_test_config,
                 success=run_metrics["success"],
                 duration=duration, 
                 run_metrics=run_metrics
@@ -96,16 +101,18 @@ class TestExecutor:
             table.add_row("Status", "✅ Success" if run_metrics["success"] else "❌ Failed")
             table.add_row("Duration", f"{round(duration, 2)} seconds")
             table.add_row("Records Processed", str(run_metrics.get('num_records', 0)))
-            table.add_row("RPS Achieved", str(run_metrics.get('rps_achieved', 0)))
-            table.add_row("Average Latency", f"{round(run_metrics.get('avg_latency_ms', 0), 2)} ms")
-            table.add_row("Lag", f"{round(run_metrics.get('lag_ms', 0), 2)} ms")
+            table.add_row("Source RPS in Kafka", str(run_metrics.get('rps_achieved', 0)))
+            table.add_row("Average Latency", f"{round(run_metrics.get('avg_latency_ms', 0), 4)} ms")
+            table.add_row("Lag", f"{round(run_metrics.get('lag_ms', 0), 2)} ms")            
+            table.add_row("GlassFlow RPS", f"{round(run_metrics.get('glassflow_rps', 0), 2)} records/s")
             console.print(table)
             
             # cleanup kafka and clickhouse
-            cleanup_kafka()
-            cleanup_clickhouse()
+            cleanup_kafka(pipeline_config.source)
+            cleanup_clickhouse(pipeline_config.sink)
             # cleanup pipeline
-            cleanup_pipeline()
+            
+            pipeline.cleanup_pipeline()
         except Exception as e:
             duration = time.time() - start_time
             error_msg = str(e)
@@ -121,7 +128,7 @@ class TestExecutor:
             # Save failed test result
             result = self._prepare_test_result(
                 variant_id=variant_id,
-                config=config,
+                load_test_config=load_test_config,
                 success=False,
                 duration=duration,
                 run_metrics=run_metrics

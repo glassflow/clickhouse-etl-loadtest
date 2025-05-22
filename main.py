@@ -19,12 +19,19 @@ def main():
                        help='Path to load test parameters configuration file (default: load_test_params.json)')
     parser.add_argument('--single-config', type=str,
                        help='JSON file of a single test configuration to run')
+    parser.add_argument('--pipeline-config', type=str,
+                       help='JSON file of a pipeline configuration to run', default="config/glassflow/deduplication_pipeline.json")
+    parser.add_argument('--glassflow-host', type=str, default='http://localhost:8080',
+                       help='GlassFlow host URL (default: http://localhost:8080)')
+    
     args = parser.parse_args()
 
     executor = TestExecutor(
         config_path=args.config,
         results_dir=args.results_dir,
-        test_id=args.test_id        
+        test_id=args.test_id,
+        pipeline_config_path=args.pipeline_config,
+        glassflow_host=args.glassflow_host
     )
 
     single_config = None
