@@ -20,7 +20,7 @@ This tool performs load testing on GlassFlow Clickhouse ETL by:
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/your-username/clickhouse-etl-loadtest.git
+git clone https://github.com/glassflow/clickhouse-etl-loadtest
 cd clickhouse-etl-loadtest
 ```
 
@@ -31,11 +31,13 @@ pip install -r requirements.txt
 
 ## Configuration
 
+### Load testing parameters
+
 The load test parameters are defined in `config/load_test_params.json`. Here are the available parameters:
 
 ### Test Parameters
 
-| Parameter | Description | Range/Values |
+| Parameter | Description | Example Range/Values |
 |-----------|-------------|--------------|
 | num_processes | Number of parallel processes | 4-12 (step: 2) |
 | records_per_second | Records per second to generate | 10,000-50,000 (step: 10,000) |
@@ -45,9 +47,8 @@ The load test parameters are defined in `config/load_test_params.json`. Here are
 | max_batch_size | Max batch size for the sink | [5000] |
 | max_delay_time | Max delay time for the sink | ["10s"] |
 
-### Configuring Test Parameters
 
-You can customize the test parameters by editing `load_test_params.json`. For each parameter, you can set:
+You can customize the test parameters by editing `load_test_params.json` or creating another config file. For each parameter, you can set:
 - `min`: Minimum value
 - `max`: Maximum value
 - `step`: Increment between values
@@ -71,6 +72,31 @@ Example configuration:
 
 To limit the number of test variants, you can set `max_combinations` in the configuration file. This is useful when you want to test a subset of all possible combinations.
 
+### Pipeline parameters
+
+The pipeline configuration is defined in `config/glassflow/deduplication_pipeline.json`. This configuration file is used to set up the GlassFlow Clickhouse ETL pipeline and specify the connection details for Kafka and ClickHouse. The existing file in the repo connects to a locally running Kafka and ClickHouse, but you can update that file if your Kafka and ClickHouse are running remotely on a cloud.
+
+#### Configuration Options
+
+You can configure the pipeline in two ways:
+
+1. **Local Setup (Default)**
+   - Uses local Kafka and ClickHouse instances running in Docker
+   - Start the services using:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Remote Setup**
+   - Connect to remote Kafka and ClickHouse instances
+   - Add credentials and connection details in the pipeline config
+   - Start only the GlassFlow services using:
+   ```bash
+   docker-compose -f docker-compose-glassflow.yaml up -d
+   ```
+
+For detailed information about the pipeline configuration structure and available options, please refer to the [GlassFlow ETL documentation](https://docs.glassflow.dev/pipeline/pipeline-configuration).
+
 ## Running the Tests
 
 1. Configure your test parameters:
@@ -84,19 +110,15 @@ docker-compose up -d
 ```
 
 3. Run the load test:
-```bash
-python main.py --test-id <your-test-id>
+```bash   
+python main.py --test-id <your_test_id> --config load_test_params.json --pipeline-config deduplication_pipeline.json 
 ```
 
 Additional options:
 - `--no-resume`: Do not resume from previous test run
 - `--results-dir`: Directory to store test results (default: 'results')
-- `--config`: Path to load test parameters configuration file (default: 'load_test_params.json')
+- `--glassflow-host`: Endpoint to reach glassflow (default: 'http://localhost:8080')
 
-Example with custom configuration:
-```bash
-python main.py --test-id my-test --config path/to/your/load_test_params.json
-```
 
 ## Test Results
 
@@ -158,13 +180,13 @@ Error handling:
 
 ## Architecture
 
-The load test runs on your local machine and interacts with:
+The load test by default runs on your local machine and interacts with:
 - Kafka: Running in Docker for message streaming
 - ClickHouse: Running in Docker for data storage
 - GlassFlow ETL: Running in Docker for data processing
 
+However the load test can also interact with Kafka and Clickhouse running in the cloud.
+
 ## Cleanup
 
-The tool includes cleanup utilities to remove test artifacts:
-- `cleanup_kafka()`: Removes Kafka topics starting with 'load_'
-- `cleanup_clickhouse()`: Removes ClickHouse tables starting with 'load_'
+Each iteration in the load test creates the needed kafka topics and clickhouse tables. It deletes those after the test is run. 
