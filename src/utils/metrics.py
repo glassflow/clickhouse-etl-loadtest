@@ -103,7 +103,7 @@ class TestResultsHandler:
         file_exists = self.results_file.exists()
         print(f"Writing result to {self.results_file}")
         with open(self.results_file, 'a', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=TestResultModel.__fields__.keys())
+            writer = csv.DictWriter(f, fieldnames=TestResultModel.model_fields.keys())
             if not file_exists:
                 writer.writeheader()
             writer.writerow(result.to_csv_row())
