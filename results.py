@@ -1,10 +1,12 @@
 import pandas as pd
 import json
 import argparse
+from typing import List
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-
+from src.utils.metrics import TestResultsHandler
+import traceback
 console = Console(width=80)
 
 def format_value(key: str, value) -> str:
@@ -34,9 +36,6 @@ def get_display_name(key: str) -> str:
 
 def display_variant_results(row):
     """Display a single variant's results in a formatted way"""
-    # Calculate GlassFlow RPS
-    glassflow_rps = row['result_num_records'] / (row['result_time_taken_ms'] / 1000)  # Convert ms to seconds
-    
     # Prepare parameters section
     params = {
         'Variant ID': row['variant_id'],
@@ -48,10 +47,11 @@ def display_variant_results(row):
     
     # Prepare results section
     results = {
+        'Success': f"{row['result_success']}",
         'Number of Records': f"{round(row['result_num_records'] / 1_000_000, 2)}M",
         'Time to Publish': f"{round(row['result_time_taken_publish_ms']/ 1000, 2)} s",
         'Source RPS in Kafka': f"{round(row['result_rps_achieved'])} records/s",
-        'GlassFlow RPS': f"{round(glassflow_rps)} records/s",
+        'GlassFlow RPS': f"{round(row['result_glassflow_rps'])} records/s",
         'Time to Process': f"{round(row['result_time_taken_ms']/ 1000, 4)} s",
         'Average Latency': f"{round(row['result_avg_latency_ms']/ 1000, 4)} s",
         'Lag': f"{round(row['result_lag_ms']/ 1000, 4)} s"
@@ -69,22 +69,18 @@ def display_variant_results(row):
     # Create a panel with the JSON output
     panel = Panel(
         Text(json_output, style="white"),
-        title=f"Test Results for {row['variant_id']}",
+        title=f"Test Results for {row['variant_id']} - {'Success' if row['result_success'] else 'Failed'}",
         border_style="blue"
     )
     
     console.print(panel)
     console.print()  # Add a blank line between variants
 
-def display_results(csv_file: str):
-    """Analyze the test results from the given CSV file"""
-    # Read CSV using pandas
-    df = pd.read_csv(csv_file)
-    
+def display_results(results: List):
     # Display results for each variant
     console.print("[bold blue]Test Results:[/bold blue]")
-    console.print(f"[bold green]Total Variants: {len(df)}[/bold green]")
-    for _, row in df.iterrows():
+    console.print(f"[bold green]Total Variants: {len(results)}[/bold green]")
+    for row in results:
         display_variant_results(row)
 
 def main():
@@ -94,11 +90,14 @@ def main():
     args = parser.parse_args()
 
     try:
-        display_results(args.results_file)
+        handler = TestResultsHandler(args.results_file)
+        results = handler.read_validated_results()
+        display_results(results)
     except FileNotFoundError:
         console.print(f"[red]Error: Results file not found: {args.results_file}[/red]")
     except Exception as e:
         console.print(f"[red]Error analyzing results: {str(e)}[/red]")
+        print(traceback.format_exc())   
 
 if __name__ == "__main__":
     main()

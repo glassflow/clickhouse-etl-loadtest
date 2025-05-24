@@ -9,6 +9,7 @@ from rich.panel import Panel
 from src.utils.logger import log
 from src.utils.clickhouse import read_clickhouse_table_size, create_clickhouse_client
 from src.utils.pipeline import GlassFlowPipeline
+from src.utils.metrics import TestResultModel
 
 console = Console(width=140)
 
@@ -101,7 +102,7 @@ def wait_for_records(clickhouse_client, pipeline_config, n_records_before, total
     ))
     return False
 
-def run_variant(pipeline_config_path: str, generator_schema: str, variant_id: str, variant_config: dict, pipeline: GlassFlowPipeline):
+def run_variant(pipeline_config_path: str, generator_schema: str, variant_id: str, variant_config: dict, pipeline: GlassFlowPipeline, test_result: TestResultModel):
     """Run a single variant of the load test"""
     # Set up pipeline with test configuration
     pipeline = setup_pipeline(variant_id, pipeline_config_path, variant_config, pipeline)
@@ -128,14 +129,12 @@ def run_variant(pipeline_config_path: str, generator_schema: str, variant_id: st
     num_records = sum(stats["num_records"] for stats in gen_stats_list)
     time_taken_ms = max(stats["time_taken_ms"] for stats in gen_stats_list)
     
-    aggregated_stats = {
-        "total_generated": total_generated,
-        "total_duplicates": total_duplicates,
-        "num_records": num_records,
-        "num_processes": variant_config["num_processes"],
-        "time_taken_publish_ms": time_taken_ms,
-        "rps_achieved": round((num_records / time_taken_ms) * 1000),    
-    }
+    test_result.result_total_generated = total_generated
+    test_result.result_total_duplicates = total_duplicates
+    test_result.result_num_records = num_records
+    test_result.result_num_processes = variant_config["num_processes"]
+    test_result.result_time_taken_publish_ms = time_taken_ms
+    test_result.result_rps_achieved = round((num_records / time_taken_ms) * 1000)
     
     console.print(Panel(
         "[green]Data published successfully[/green]",
@@ -165,11 +164,13 @@ def run_variant(pipeline_config_path: str, generator_schema: str, variant_id: st
         success = True
     
     time_taken_complete_ms = round((time.time() - start_time) * 1000)
-    aggregated_stats["success"] = success
-    aggregated_stats["time_taken_ms"] = time_taken_complete_ms
+    test_result.result_success = success
+    test_result.result_time_taken_ms = time_taken_complete_ms
+
     # average latency 
-    aggregated_stats["avg_latency_ms"] = time_taken_complete_ms / num_records
-    aggregated_stats["lag_ms"] = round((record_reading_end_time - record_reading_start_time) * 1000)
-    aggregated_stats["glassflow_rps"] = round((num_records / time_taken_complete_ms) * 1000)
-    return aggregated_stats
+    test_result.result_avg_latency_ms = time_taken_complete_ms / num_records
+    test_result.result_lag_ms = round((record_reading_end_time - record_reading_start_time) * 1000)
+    test_result.result_glassflow_rps = round((num_records / time_taken_complete_ms) * 1000)
+    
+    return test_result
 
