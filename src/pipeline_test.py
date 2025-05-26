@@ -65,12 +65,12 @@ def run_variant(pipeline_config_path: str, event_schema: str, variant_id: str, v
     # Run multiple publishers in parallel
     publish_stats = publish_to_kafka(pipeline, event_schema, variant_config)
     # update
+    test_result.result_num_processes = variant_config["num_processes"]
     test_result.result_total_generated = publish_stats['total_generated']
     test_result.result_total_duplicates = publish_stats['total_duplicates']
-    test_result.result_num_records = publish_stats['num_records']
-    test_result.result_num_processes = variant_config["num_processes"]
+    test_result.result_num_records = publish_stats['num_records']    
     test_result.result_time_taken_publish_ms = publish_stats['time_taken_publish_ms']
-    test_result.result_kafka_ingestion_rps = round(publish_stats['num_records'] / publish_stats['time_taken_publish_ms'])
+    test_result.result_kafka_ingestion_rps = publish_stats['kafka_ingestion_rps']
     
     console.print(Panel(
         "[green]Data published successfully[/green]",

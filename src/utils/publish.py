@@ -58,10 +58,18 @@ def publish_to_kafka(pipeline: Pipeline, generator_schema: str, variant_config: 
         # Map the work across the processes
         results = pool.map(publish_events_worker, process_args)
 
+    num_records = sum(stats["num_records"] for stats in results)
+    time_taken_publish_ms = max(stats["time_taken_ms"] for stats in results)
+    total_generated = sum(stats["total_generated"] for stats in results)
+    total_duplicates = sum(stats["total_duplicates"] for stats in results)
+    kafka_ingestion_rps = round(num_records * 1000 / time_taken_publish_ms)
+    
     publish_stats = {
-        "total_generated": sum(stats["total_generated"] for stats in results),
-        "total_duplicates": sum(stats["total_duplicates"] for stats in results),
-        "num_records": sum(stats["num_records"] for stats in results),
-        "time_taken_publish_ms": max(stats["time_taken_ms"] for stats in results)
+        "total_generated": total_generated,
+        "total_duplicates": total_duplicates,
+        "num_records": num_records,
+        "time_taken_publish_ms": time_taken_publish_ms,
+        "kafka_ingestion_rps": kafka_ingestion_rps
     }
+    
     return publish_stats

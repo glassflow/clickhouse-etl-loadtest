@@ -13,5 +13,5 @@
             "description": "Total number of records to generate"
         }
     },    
-    "max_combinations": 1          
+    "max_combinations": 2
 }

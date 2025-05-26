@@ -138,7 +138,7 @@ For example, if you ran a test with ID "test-001", the results would be in `resu
 
 ### Metrics Collected
 
-The following metrics are collected and analyzed for each test run:
+The following metrics are collected and displayed for each test run:
 
 | Metric | Description | Unit |
 |--------|-------------|------|
@@ -150,7 +150,7 @@ The following metrics are collected and analyzed for each test run:
 | result_avg_latency_ms | Average latency per record | milliseconds |
 | result_success | Whether the test completed successfully | boolean |
 | result_lag_ms | Lag between data generation and processing | milliseconds |
-| glassflow_rps_ms | Records per second processed by GlassFlow | records/second |
+| result_glassflow_rps | Records per second processed by GlassFlow | records/second |
 
 
 These metrics provide insights into:
@@ -171,23 +171,8 @@ For example:
 python results.py --results-file results/19_05_001_results.csv
 ```
 
-The script will display:
-- A list of all available columns in the results file
-- A formatted table showing the important metrics for each test variant:
-  - Variant ID
-  - Time taken for the test
-  - Number of records processed
-  - Time taken to publish
-  - RPS achieved
-  - Time taken to process records
-  - Average latency
-  - Success status
+The script will display all the results in a json format. 
 
-The results are presented in a clear, tabular format with color-coded headers and values for better readability.
-
-Error handling:
-- If the results file is not found, an error message will be displayed in red
-- Any other errors during analysis will be clearly reported
 
 ## Architecture
 
