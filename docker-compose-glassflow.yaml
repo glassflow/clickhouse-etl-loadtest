@@ -8,12 +8,14 @@ services:
 
   ui:
     image: glassflow/clickhouse-etl-fe:stable
+    pull_policy: always
 
   app:
     image: glassflow/clickhouse-etl-be:stable
     depends_on:
       - nats
     restart: unless-stopped
+    pull_policy: always
     environment:
       GLASSFLOW_LOG_FILE_PATH: /tmp/logs/glassflow
       GLASSFLOW_NATS_SERVER: nats:4222

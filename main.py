@@ -2,6 +2,9 @@ from src.test_executor import TestExecutor
 import json
 from rich.console import Console
 from rich.panel import Panel
+from src.models import LoadTestConfig, SingleTestConfig
+from src.load_test_generator import LoadTestGenerator
+
 
 console = Console(width=140)
 
@@ -24,20 +27,21 @@ def main():
     parser.add_argument('--glassflow-host', type=str, default='http://localhost:8080',
                        help='GlassFlow host URL (default: http://localhost:8080)')
     
-    args = parser.parse_args()
-
-    executor = TestExecutor(
-        config_path=args.config,
+    args = parser.parse_args()    
+    executor = TestExecutor(    
         results_dir=args.results_dir,
         test_id=args.test_id,
         pipeline_config_path=args.pipeline_config,
         glassflow_host=args.glassflow_host
     )
 
-    single_config = None
+    single_config = None  
+    combinations = []  
     if args.single_config:
         try:
-            single_config = json.load(open(args.single_config))
+            with open(args.single_config) as f:
+                single_config = SingleTestConfig.model_validate_json(f.read())                
+                combinations.append(single_config.model_dump())
         except json.JSONDecodeError:
             console.print(Panel(
                 "[red]Invalid JSON format for --single-config parameter[/red]",
@@ -45,8 +49,28 @@ def main():
                 border_style="red"
             ))
             return
+        except Exception as e:
+            console.print(Panel(
+                f"[red]Invalid configuration format: {str(e)}[/red]",
+                title="❌ Error",
+                border_style="red"
+            ))
+            return
+    else:
+        # generate combinations from the config file
+        try:            
+            generator = LoadTestGenerator(args.config)
+            combinations = generator.generate_combinations()
+        except Exception as e:
+            console.print(Panel(
+                f"[red]Invalid configuration format: {str(e)}[/red]",
+                title="❌ Error",
+                border_style="red"
+            ))
+            return
 
-    executor.run_tests(resume=not args.no_resume, single_config=single_config)
+    # run the tests
+    executor.run_tests(resume=not args.no_resume, variant_configs=combinations)
 
 if __name__ == "__main__":
     main()

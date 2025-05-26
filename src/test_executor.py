@@ -1,9 +1,8 @@
 import uuid
 import json
 import time
-from typing import Dict
-from src.load_test_generator import LoadTestGenerator
-from src.pippeline_test import run_variant
+from typing import Dict, List
+from src.pipeline_test import run_variant
 from src.utils.pipeline import GlassFlowPipeline
 from src.utils.clickhouse import cleanup_clickhouse
 from src.utils.kafka import cleanup_kafka
@@ -14,12 +13,15 @@ import os
 console = Console(width=140)
 
 class TestExecutor:
-    def __init__(self, config_path: str, results_dir: str, test_id: str, pipeline_config_path: str, glassflow_host: str = "http://localhost:8080", generator_schema: str = "config/glassgen/user_event.json"):
-        self.generator = LoadTestGenerator(config_path)
+    def __init__(self, results_dir: str, 
+                 test_id: str, 
+                 pipeline_config_path: str, 
+                 glassflow_host: str = "http://localhost:8080", 
+                 event_schema: str = "config/glassgen/user_event.json"):
         self.test_id = test_id        
         self.pipeline_config_path = pipeline_config_path
         self.glassflow_host = glassflow_host
-        self.generator_schema = generator_schema
+        self.event_schema = event_schema
         results_file = os.path.join(results_dir, f"{test_id}_results.csv")
         self.result_writer = TestResultsHandler(results_file)
     
@@ -40,11 +42,11 @@ class TestExecutor:
         start_time = time.time()
         test_result = TestResultModel.from_load_test_config(self.test_id, variant_id, load_test_config)        
         try:            
-            test_result = run_variant(self.pipeline_config_path, self.generator_schema, variant_id, load_test_config, pipeline, test_result)
+            test_result = run_variant(self.pipeline_config_path, self.event_schema, variant_id, load_test_config, pipeline, test_result)
             duration = time.time() - start_time
             test_result.duration_sec = duration        
             cleanup_kafka(pipeline_config.source)
-            cleanup_clickhouse(pipeline_config.sink)            
+            cleanup_clickhouse(pipeline_config.sink)
             pipeline.cleanup_pipeline()          
             print(f"Test result: {test_result.result_success}")
         except Exception as e:
@@ -64,14 +66,9 @@ class TestExecutor:
         self.result_writer.write_result(test_result)
         self.result_writer.display_results(test_result)
 
-    def run_tests(self, resume: bool = True, single_config: Dict = None):
+    def run_tests(self, resume: bool = True, variant_configs: List[Dict] = None):
         """Run all test configurations, with option to resume from last completed test"""
-        # Get test configurations
-        if single_config:
-            all_configs = [single_config]
-        else:
-            all_configs = self.generator.generate_combinations()
-        
+        # Get test configurations        
         # Get completed tests if resuming
         completed_tests = self.result_writer.get_completed_tests() if resume else []
         completed_variant_ids = {test["variant_id"] for test in completed_tests}
@@ -79,18 +76,18 @@ class TestExecutor:
         # Print test execution header
         console.print(Panel(
             f"[bold blue]Test ID:[/bold blue] {self.test_id}\n"
-            f"[bold blue]Total Configurations:[/bold blue] {len(all_configs)}\n"
+            f"[bold blue]Total Configurations:[/bold blue] {len(variant_configs)}\n"
             f"[bold blue]Resume Mode:[/bold blue] {'Enabled' if resume else 'Disabled'}",
             title="🚀 Test Execution Started",
             border_style="blue"
         ))
         
         # Run each test configuration
-        for i, config in enumerate(all_configs, 1):
+        for i, config in enumerate(variant_configs, 1):
             variant_id = self._create_variant_id(config)
             if resume and variant_id in completed_variant_ids:                
                 console.print(Panel(
-                    f"[bold cyan]Test {i}/{len(all_configs)}[/bold cyan]\n"
+                    f"[bold cyan]Test {i}/{len(variant_configs)}[/bold cyan]\n"
                     f"[bold cyan]Variant ID:[/bold cyan] {variant_id}\n\n"
                     f"[bold cyan]Configuration:[/bold cyan]\n{json.dumps(config, indent=2)}",
                     title="⏭️ Skipped CompletedTest",
@@ -100,7 +97,7 @@ class TestExecutor:
 
             # Print test configuration
             console.print(Panel(
-                f"[bold cyan]Test {i}/{len(all_configs)}[/bold cyan]\n"
+                f"[bold cyan]Test {i}/{len(variant_configs)}[/bold cyan]\n"
                 f"[bold cyan]Variant ID:[/bold cyan] {variant_id}\n\n"
                 f"[bold cyan]Configuration:[/bold cyan]\n{json.dumps(config, indent=2)}",
                 title="🔄 Running Test",

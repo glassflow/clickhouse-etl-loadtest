@@ -33,20 +33,18 @@ pip install -r requirements.txt
 
 ### Load testing parameters
 
-The load test parameters are defined in `config/load_test_params.json`. Here are the available parameters:
+The load test parameters are defined in `load_test_params.json`. Here are the available parameters:
 
 ### Test Parameters
 
-| Parameter | Description | Example Range/Values |
-|-----------|-------------|--------------|
-| num_processes | Number of parallel processes | 4-12 (step: 2) |
-| records_per_second | Records per second to generate | 10,000-50,000 (step: 10,000) |
-| total_records | Total number of records to generate | 500,000-5,000,000 (step: 500,000) |
-| duplication_rate | Rate of duplicate records | 0.1 (10% duplicates) |
-| deduplication_window | Time window for deduplication | ["1h", "4h"] |
-| max_batch_size | Max batch size for the sink | [5000] |
-| max_delay_time | Max delay time for the sink | ["10s"] |
-
+| Parameter | Required/Optional | Description | Example Range/Values | Default
+|-----------|------------------|-------------|--------------|--------------|
+| num_processes | Required | Number of parallel processes | 1-N (step: 1) | - |
+| total_records | Required | Total number of records to generate | 500,000-5,000,000 (step: 500,000) | -
+| duplication_rate | Optional | Rate of duplicate records | 0.1 (10% duplicates) | 0.1 | 
+| deduplication_window | Optional | Time window for deduplication | ["1h", "4h"] | "8h" |
+| max_batch_size | Optional | Max batch size for the sink | [5000] | 5000 |
+| max_delay_time | Optional | Max delay time for the sink | ["10s"] | "10s" |
 
 You can customize the test parameters by editing `load_test_params.json` or creating another config file. For each parameter, you can set:
 - `min`: Minimum value
@@ -54,23 +52,34 @@ You can customize the test parameters by editing `load_test_params.json` or crea
 - `step`: Increment between values
 - `values`: Fixed list of values (if step is not used)
 
+The parameters are defined and validated again a pydantic model `LoadTestParameters` defined in `src/models.py` 
+
 Example configuration:
 ```json
-{
-    "num_processes": {
-        "min": 4,
-        "max": 12,
-        "step": 2
-    },
-    "records_per_second": {
-        "min": 10000,
-        "max": 50000,
-        "step": 10000
-    }
+    {
+    "parameters": {
+        "num_processes": {
+            "min": 1,
+            "max": 4,
+            "step": 1,
+            "description": "Number of parallel processes to run"
+        },        
+        "total_records": {
+            "min": 5000000,
+            "max": 10000000,
+            "step": 5000000,
+            "description": "Total number of records to generate"
+        }
+    },    
+    "max_combinations": 1
 }
 ```
+To limit the number of test variants, you can set `max_combinations` in the configuration file. This is useful when you want to test a subset of all possible combinations. To run all combinations, set `max_combinations` to `-1`
 
-To limit the number of test variants, you can set `max_combinations` in the configuration file. This is useful when you want to test a subset of all possible combinations.
+### Multi-Processing
+
+The test framework is designed uses mutiple processes on the host machine to generate and send data to kafka in parallel. The amount of processes to use in the test can be controlled by 
+`num_processes` parameter. Sending events via multiple processes controls the Ingestion RPS into Kafka. 
 
 ### Pipeline parameters
 
@@ -137,10 +146,12 @@ The following metrics are collected and analyzed for each test run:
 | result_num_records | Number of records processed | count |
 | result_time_taken_publish_ms | Time taken to publish records to Kafka | milliseconds |
 | result_time_taken_ms | Time taken to process records through the pipeline | milliseconds |
-| result_rps_achieved | Records per second achieved during the test | records/second |
+| result_kafka_ingestion_rps | Records per second sent to Kafka | records/second |
 | result_avg_latency_ms | Average latency per record | milliseconds |
 | result_success | Whether the test completed successfully | boolean |
 | result_lag_ms | Lag between data generation and processing | milliseconds |
+| glassflow_rps_ms | Records per second processed by GlassFlow | records/second |
+
 
 These metrics provide insights into:
 - Overall test performance (duration, success rate)

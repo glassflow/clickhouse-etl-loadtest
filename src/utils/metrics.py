@@ -21,8 +21,7 @@ class TestResultModel(BaseModel):
     duration_sec: float
     
     # Test parameters
-    param_num_processes: int
-    param_records_per_second: int
+    param_num_processes: int    
     param_total_records: int
     param_duplication_rate: float
     param_deduplication_window: str
@@ -35,7 +34,7 @@ class TestResultModel(BaseModel):
     result_num_records: Optional[int] = None
     result_num_processes: Optional[int] = None
     result_time_taken_publish_ms: Optional[float] = None
-    result_rps_achieved: Optional[float] = None
+    result_kafka_ingestion_rps: Optional[float] = None
     result_success: Optional[bool] = None
     result_time_taken_ms: Optional[float] = None
     result_avg_latency_ms: Optional[float] = None
@@ -49,8 +48,7 @@ class TestResultModel(BaseModel):
             'variant_id': self.variant_id,
             'timestamp': self.timestamp.isoformat(),            
             'duration_sec': str(self.duration_sec),
-            'param_num_processes': str(self.param_num_processes),
-            'param_records_per_second': str(self.param_records_per_second),
+            'param_num_processes': str(self.param_num_processes),            
             'param_total_records': str(self.param_total_records),
             'param_duplication_rate': str(self.param_duplication_rate),
             'param_deduplication_window': self.param_deduplication_window,
@@ -61,7 +59,7 @@ class TestResultModel(BaseModel):
             'result_num_records': str(self.result_num_records) if self.result_num_records is not None else '',
             'result_num_processes': str(self.result_num_processes) if self.result_num_processes is not None else '',
             'result_time_taken_publish_ms': str(self.result_time_taken_publish_ms) if self.result_time_taken_publish_ms is not None else '',
-            'result_rps_achieved': str(self.result_rps_achieved) if self.result_rps_achieved is not None else '',
+            'result_kafka_ingestion_rps': str(self.result_kafka_ingestion_rps) if self.result_kafka_ingestion_rps is not None else '',
             'result_success': str(self.result_success) if self.result_success is not None else '',
             'result_time_taken_ms': str(self.result_time_taken_ms) if self.result_time_taken_ms is not None else '',
             'result_avg_latency_ms': str(self.result_avg_latency_ms) if self.result_avg_latency_ms is not None else '',
@@ -76,8 +74,7 @@ class TestResultModel(BaseModel):
             test_id=test_id,
             variant_id=variant_id,
             duration_sec=0.0,  # Default to 0 until test completes
-            param_num_processes=load_test_config["num_processes"],
-            param_records_per_second=load_test_config["records_per_second"],
+            param_num_processes=load_test_config["num_processes"],            
             param_total_records=load_test_config["total_records"],
             param_duplication_rate=load_test_config["duplication_rate"],
             param_deduplication_window=load_test_config["deduplication_window"],
@@ -162,7 +159,7 @@ class TestResultsHandler:
         table.add_row("Status", "✅ Success" if test_result.result_success else "❌ Failed")
         table.add_row("Duration", f"{round(test_result.duration_sec, 2)} seconds")
         table.add_row("Records Processed", str(test_result.result_num_records))
-        table.add_row("Source RPS in Kafka", str(test_result.result_rps_achieved))
+        table.add_row("Source RPS in Kafka", str(test_result.result_kafka_ingestion_rps))
         table.add_row("Average Latency", f"{round(test_result.result_avg_latency_ms, 4)} ms")
         table.add_row("Lag", f"{round(test_result.result_lag_ms, 2)} ms")            
         table.add_row("GlassFlow RPS", f"{round(test_result.result_glassflow_rps, 2)} records/s")

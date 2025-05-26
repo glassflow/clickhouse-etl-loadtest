@@ -1,6 +1,6 @@
-rich
-confluent-kafka
-clickhouse-connect
+rich==14.0.0
+confluent-kafka==2.8.2
 glassgen>=0.1.19
-glassflow-clickhouse-etl
-clickhouse-driver
+glassflow-clickhouse-etl==0.2.4
+clickhouse-driver==0.2.9
+pandas==2.2.3

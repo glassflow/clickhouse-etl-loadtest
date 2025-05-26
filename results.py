@@ -26,7 +26,7 @@ def get_display_name(key: str) -> str:
         # Results
         'result_num_records': 'Number of Records',
         'result_time_taken_publish_ms': 'Time to Publish',
-        'result_rps_achieved': 'Source RPS in Kafka',
+        'result_kafka_ingestion_rps': 'Source RPS in Kafka',
         'result_time_taken_ms': 'Time to Process',
         'result_avg_latency_ms': 'Average Latency',
         'result_lag_ms': 'Lag',
@@ -50,7 +50,7 @@ def display_variant_results(row):
         'Success': f"{row['result_success']}",
         'Number of Records': f"{round(row['result_num_records'] / 1_000_000, 2)}M",
         'Time to Publish': f"{round(row['result_time_taken_publish_ms']/ 1000, 2)} s",
-        'Source RPS in Kafka': f"{round(row['result_rps_achieved'])} records/s",
+        'Source RPS in Kafka': f"{round(row['result_kafka_ingestion_rps'])} records/s",
         'GlassFlow RPS': f"{round(row['result_glassflow_rps'])} records/s",
         'Time to Process': f"{round(row['result_time_taken_ms']/ 1000, 4)} s",
         'Average Latency': f"{round(row['result_avg_latency_ms']/ 1000, 4)} s",
